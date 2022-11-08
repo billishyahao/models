@@ -24,10 +24,18 @@ import os
 import tensorflow as tf
 from absl import app
 from absl import logging
+from tensorflow.core.protobuf import config_pb2 
+from tensorflow.core.protobuf import rewriter_config_pb2 
+from tensorflow.python.grappler import tf_optimizer 
+from tensorflow.python.tools import saved_model_utils 
+
 tf.compat.v1.disable_v2_behavior()
 
 tf.compat.v1.flags.DEFINE_bool("saved_model",
                                False,
+                               "whether export saved model or not")
+tf.compat.v1.flags.DEFINE_bool("bf16_saved_model",
+                               True,
                                "whether export saved model or not")
 FLAGS = tf.compat.v1.flags.FLAGS
 
@@ -106,11 +114,15 @@ class SquadExporter:
     builder.add_meta_graph_and_variables(self.session, [tag], signature_def_map)
     builder.save()
 
-  def export_frozen_graph(self, frozen_graph_name="frozen_graph.pb"):
+  def export_frozen_graph(self, frozen_graph_name="frozen_graph.pb", \
+      frozen_bf16_graph_name="bf16_frozen_graph.pb"):
     # we should disable v2 behavior, at the same time, the bn norm has some op name difference
     # should be handled. Otherwise, it will throw exception when do import graph def.
     # https://www.bountysource.com/issues/36614355-unable-to-import-frozen-graph-with-batchnorm
     graph_def = self.session.graph.as_graph_def()
+    print("graph type: ", type(self.session.graph))
+    print("graph_def type: ", type(graph_def))
+    
     for node in graph_def.node:
       if node.op == 'RefEnter':
         node.op = 'Enter'
@@ -130,13 +142,27 @@ class SquadExporter:
         if 'use_locking' in node.attr: del node.attr['use_locking']
 
     outputs_name = ['start_logits', 'end_logits']
-    graph_def = tf.compat.v1.graph_util.convert_variables_to_constants(self.session,
+    freeze_graph_def = tf.compat.v1.graph_util.convert_variables_to_constants(self.session,
                                                                        graph_def,
                                                                        outputs_name)
 
     path = os.path.join(self.dest_dir, frozen_graph_name)
     with tf.compat.v1.gfile.GFile(path, 'wb') as pb_file:
-      pb_file.write(graph_def.SerializeToString())
+      pb_file.write(freeze_graph_def.SerializeToString())
+    
+    if FLAGS.bf16_saved_model:
+      graph_options = tf.compat.v1.GraphOptions(rewrite_options=rewriter_config_pb2.RewriterConfig(
+            auto_mixed_precision_onednn_bfloat16=rewriter_config_pb2.RewriterConfig.ON)) 
+      optimizer_config = tf.compat.v1.ConfigProto(graph_options=graph_options)
+      metagraph_def = saved_model_utils.get_meta_graph_def(self.dest_dir, "serve")  
+      bf16_graph_def = tf_optimizer.OptimizeGraph(optimizer_config, metagraph_def) 
+      bf16_freeze_graph_def = tf.compat.v1.graph_util.convert_variables_to_constants(self.session,
+                                                                       bf16_graph_def,
+                                                                       outputs_name)
+      bf16_path = os.path.join(self.dest_dir, frozen_bf16_graph_name)
+      with tf.compat.v1.gfile.GFile(bf16_path, 'wb') as pb_file:
+        pb_file.write(bf16_freeze_graph_def.SerializeToString())
+
 
 def main(_):
   tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)

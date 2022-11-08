@@ -149,6 +149,7 @@ class LaunchBenchmark(base_benchmark_util.BaseBenchmarkUtil):
         search_path = os.path.join(
             benchmark_scripts, "*", args.framework, args.model_name,
             args.mode, args.precision)
+        print("search_path: ", search_path)
         matches = glob.glob(search_path)
         error_str = ""
         if len(matches) > 1:

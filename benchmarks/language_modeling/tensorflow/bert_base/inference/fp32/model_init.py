@@ -55,6 +55,8 @@ class ModelInitializer(BaseModelInitializer):
                                 dest="experimental_gelu", default="False")
         arg_parser.add_argument("--config-file", dest="bert_config_file", default="bert_config.json")
         arg_parser.add_argument("--vocab-file", dest="vocab_file", default="vocab.txt")
+        arg_parser.add_argument(
+            "--predict-file", dest="predict_file", default="dev-v1.1.json")
         arg_parser.add_argument('--task-name', help=' Task name for classifier', dest="task_name", default='MRPC')
         arg_parser.add_argument('--do-eval', help=' Eval for Classifier', dest="do_eval",
                                 default="False")  # compatible with SQuAD
@@ -102,6 +104,10 @@ class ModelInitializer(BaseModelInitializer):
             " --do_lower_case=" + str(self.args.do_lower_case)
 
         if self.args.infer_option == "SQuAD":
+            #TODO(yahao)
+            if self.args.predict_file and not os.path.isabs(self.args.predict_file):
+                self.args.predict_file = os.path.join(self.args.data_location, self.args.predict_file)
+
             model_args = model_args + \
                 " --vocab_file=" + str(self.args.vocab_file) + eoo + \
                 " --predict_file=" + str(self.args.predict_file) + eoo + \

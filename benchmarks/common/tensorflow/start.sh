@@ -1105,6 +1105,9 @@ function resnet101_inceptionv3() {
     elif [ ${PRECISION} == "fp32" ]; then
       CMD="${CMD} $(add_steps_args)"
       PYTHONPATH=${PYTHONPATH} CMD=${CMD} run_model
+    elif [ ${PRECISION} == "bfloat16" ]; then
+      CMD="${CMD} $(add_steps_args)"
+      PYTHONPATH=${PYTHONPATH} CMD=${CMD} run_model
     else
       echo "PRECISION=${PRECISION} is not supported for ${MODEL_NAME}"
       exit 1

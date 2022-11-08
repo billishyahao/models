@@ -117,7 +117,7 @@ flags.DEFINE_float(
     "Proportion of training to perform linear learning rate warmup for. "
     "E.g., 0.1 = 10% of training.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 1000,
+flags.DEFINE_integer("save_checkpoints_steps", 2,
                      "How often to save the model checkpoint.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
@@ -1310,6 +1310,7 @@ def do_benchmark():
     t2 = time.time()
     throughput_list[tid] = FLAGS.predict_batch_size * FLAGS.steps / (t2 - t1)
     print('Thread {0} has throughput {1}'.format(tid + 1, throughput_list[tid]))
+    print('Thread {0} has latency {1} ms'.format(tid + 1, (t2 - t1)/ (FLAGS.predict_batch_size * FLAGS.steps)*1000))
 
   # Override inter_op_parallelism_threads when weight sharing on
   if FLAGS.weight_sharing:
@@ -1547,6 +1548,8 @@ def main(_):
             num_benchmark_examples, benchmark_duration))
       print("Throughput: %3.2f"
             % (float(num_benchmark_examples)/float(benchmark_duration)))
+      print("Latency: %.5f ms"
+            % (float(benchmark_duration)/float(num_benchmark_examples)*1000))
     if FLAGS.mode == 'accuracy':
       output_prediction_file = os.path.join(FLAGS.output_dir, "predictions.json")
       output_nbest_file = os.path.join(FLAGS.output_dir, "nbest_predictions.json")

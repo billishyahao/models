@@ -72,8 +72,11 @@ class ClassifierExporter:
                        self.label_ids, num_labels, use_one_hot_embeddings,
                        None) # frozen graph path
 
+    print("output_dir: ", FLAGS.output_dir)
     latest_model = tf.train.latest_checkpoint(FLAGS.output_dir)
     saver = tf.compat.v1.train.Saver()
+    if not latest_model:
+      print("latest model is None")
     saver.restore(self.session, latest_model)
 
     self.output_dir = output_dir
