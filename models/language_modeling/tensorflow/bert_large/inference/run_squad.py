@@ -1255,49 +1255,66 @@ def do_benchmark():
   throughput_list = [None] * num_instances
   # TODO(intel-tf): Generalize the values of seq, query, and paragraph lengths.
   # Hard setting for running benchmark without data layer now.
-  MAX_SEQ_LENGTH = 384
+  # MAX_SEQ_LENGTH = 384
   MIN_QUERY_LENGTH = 10
   MAX_QUERY_LENGTH = 20
   MIN_PARAGRAPH_LENGTH = 120
   MAX_PARAGRAPH_LENGTH = 300
   VOCAB_SIZE = 30522
-
+  
+  MAX_SEQ_LENGTH = FLAGS.max_seq_length
+  
   def create_feed_dict():
-    question_length = np.random.randint(MIN_QUERY_LENGTH, MAX_QUERY_LENGTH)
-    paragraph_length = np.random.randint(
-        MIN_PARAGRAPH_LENGTH, MAX_PARAGRAPH_LENGTH)
+    
     input_ids = np.random.randint(
-        1, VOCAB_SIZE, [
-            question_length + paragraph_length])
-    input_ids = np.pad(input_ids, (0, MAX_SEQ_LENGTH - len(input_ids)))
-    input_mask = np.ones(question_length + paragraph_length)
-    input_mask = np.pad(input_mask, (0, MAX_SEQ_LENGTH - len(input_mask)))
-    segment_ids = np.ones(paragraph_length)
-    segment_ids = np.pad(segment_ids, (question_length,
-                                       MAX_SEQ_LENGTH - (question_length + paragraph_length)))
+        1, VOCAB_SIZE, [MAX_SEQ_LENGTH]) 
+    input_mask = np.ones(MAX_SEQ_LENGTH)
+    segment_ids = np.ones(MAX_SEQ_LENGTH)
+   
     input_ids = input_ids[None, :]
     input_mask = input_mask[None, :]
     segment_ids = segment_ids[None, :]
-    for _ in range(FLAGS.predict_batch_size - 1):
-      question_length = np.random.randint(MIN_QUERY_LENGTH, MAX_QUERY_LENGTH)
-      paragraph_length = np.random.randint(
-          MIN_PARAGRAPH_LENGTH, MAX_PARAGRAPH_LENGTH)
-      _input_ids = np.random.randint(
-          1, VOCAB_SIZE, [
-              question_length + paragraph_length])
-      _input_ids = np.pad(_input_ids, (0, MAX_SEQ_LENGTH - len(_input_ids)))
-      _input_mask = np.ones(question_length + paragraph_length)
-      _input_mask = np.pad(_input_mask, (0, MAX_SEQ_LENGTH - len(_input_mask)))
-      _segment_ids = np.ones(paragraph_length)
-      _segment_ids = np.pad(_segment_ids, (question_length,
-                                           MAX_SEQ_LENGTH - (question_length + paragraph_length)))
-      input_ids = np.vstack([input_ids, _input_ids])
-      input_mask = np.vstack([input_mask, _input_mask])
-      segment_ids = np.vstack([segment_ids, _segment_ids])
     return {
         'input_ids:0': input_ids,
         'input_mask:0': input_mask,
         'segment_ids:0': segment_ids}
+
+  # def create_feed_dict():
+  #   question_length = np.random.randint(MIN_QUERY_LENGTH, MAX_QUERY_LENGTH)
+  #   paragraph_length = np.random.randint(
+  #       MIN_PARAGRAPH_LENGTH, MAX_PARAGRAPH_LENGTH)
+  #   input_ids = np.random.randint(
+  #       1, VOCAB_SIZE, [
+  #           question_length + paragraph_length])
+  #   input_ids = np.pad(input_ids, (0, MAX_SEQ_LENGTH - len(input_ids)))
+  #   input_mask = np.ones(question_length + paragraph_length)
+  #   input_mask = np.pad(input_mask, (0, MAX_SEQ_LENGTH - len(input_mask)))
+  #   segment_ids = np.ones(paragraph_length)
+  #   segment_ids = np.pad(segment_ids, (question_length,
+  #                                      MAX_SEQ_LENGTH - (question_length + paragraph_length)))
+  #   input_ids = input_ids[None, :]
+  #   input_mask = input_mask[None, :]
+  #   segment_ids = segment_ids[None, :]
+  #   for _ in range(FLAGS.predict_batch_size - 1):
+  #     question_length = np.random.randint(MIN_QUERY_LENGTH, MAX_QUERY_LENGTH)
+  #     paragraph_length = np.random.randint(
+  #         MIN_PARAGRAPH_LENGTH, MAX_PARAGRAPH_LENGTH)
+  #     _input_ids = np.random.randint(
+  #         1, VOCAB_SIZE, [
+  #             question_length + paragraph_length])
+  #     _input_ids = np.pad(_input_ids, (0, MAX_SEQ_LENGTH - len(_input_ids)))
+  #     _input_mask = np.ones(question_length + paragraph_length)
+  #     _input_mask = np.pad(_input_mask, (0, MAX_SEQ_LENGTH - len(_input_mask)))
+  #     _segment_ids = np.ones(paragraph_length)
+  #     _segment_ids = np.pad(_segment_ids, (question_length,
+  #                                          MAX_SEQ_LENGTH - (question_length + paragraph_length)))
+  #     input_ids = np.vstack([input_ids, _input_ids])
+  #     input_mask = np.vstack([input_mask, _input_mask])
+  #     segment_ids = np.vstack([segment_ids, _segment_ids])
+  #   return {
+  #       'input_ids:0': input_ids,
+  #       'input_mask:0': input_mask,
+  #       'segment_ids:0': segment_ids}
 
   def run_model(sess, tid):
     outputs = ['start_logits:0', 'end_logits:0']
